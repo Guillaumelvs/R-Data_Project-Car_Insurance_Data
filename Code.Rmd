@@ -1,0 +1,1416 @@
+---
+title: "Projet R - Car Insurance classification"
+author: "Guillaume Lesvesque & Valentin Maillo"
+date : "Janvier 2022 "
+
+output: 
+  pdf_document: 
+    keep_tex: yes
+fontsize: 10pt    
+header-includes:
+   - \usepackage{mdframed}
+   - \usepackage[french]{babel}
+   - \usepackage{graphicx}
+   - \usepackage{bbm}
+   - \usepackage{amsmath}
+   - \usepackage{amsfonts}
+   - \usepackage{amssymb}   
+   - \usepackage{txfonts}
+   - \usepackage{pifont}
+   - \usepackage{subfigure}
+   - \newtheorem{example}{Example}
+   - \newtheorem{theo}{Theorem}
+   - \newtheorem{definition}{Definition}
+   - \newtheorem{proposition}{Proposition}
+   - \newtheorem{lem}{Lemma}
+   - \newtheorem{corollary}{Corollary}
+   - \newtheorem{remark}{Remark}
+   - \newtheorem{exo}{Exercise}
+   - \newtheorem{proof}{Proof}
+   - \newtheorem{hyp}{Hypothese}
+   - \def \e{\varepsilon}
+   - \newcommand{\cL}{\ensuremath{\mathcal{L}}}
+   - \newcommand{\cI}{\ensuremath{\mathcal{I}}}
+   - \newcommand{\cX}{\ensuremath{\mathcal{X}}}
+   - \newcommand{\cM}{\ensuremath{\mathcal{M}}}
+   - \newcommand{\cB}{\ensuremath{\mathcal{B}}}
+   - \newcommand{\cD}{\ensuremath{\mathcal{D}}}
+   - \newcommand{\cN}{\ensuremath{\mathcal{N}}}
+   - \newcommand{\R}{\ensuremath{\mathbb{R}}}
+   - \def\E{\mathbb E}
+   - \newcommand{\1}{\mathbbm{1}}
+   - \newcommand{\I}{\mathbb{I}}
+   - \newcommand{\Ne}{\ensuremath{\mathbb{N}}}
+   - \def \a{\alpha}
+   - \def \b{\beta}
+   - \def \g{\gamma}
+   - \def \s{\sigma}
+   - \newcommand{\tr}{\mathrm{Tr}}
+   - \newcommand{\Expect}[1]{\mathbb{E}\left[#1 \right]}
+   - \newcommand{\Var}{\mathbb{V}\text{ar}}
+   - \newcommand{\Cov}{\mathbb{C}\text{ov}}
+   - \newcommand{\Prob}[1]{\mathbb{P}\left(#1 \right)}
+   - \newcommand{\se}[1]{\mathrm{se}\left(#1 \right)}
+   - \newcommand{\sehat}[1]{\hat{\mathrm{se}}\left(#1 \right)}
+   - \newcommand{\ind}{\mathbbm{1}}
+   - \newcommand{\by}{\boldsymbol{y}}
+   - \newcommand{\bx}{\boldsymbol{x}}
+   - \newcommand{\bX}{\boldsymbol{X}}
+   - \newcommand{\bY}{\boldsymbol{Y}}
+   - \newcommand{\bu}{\boldsymbol{u}}
+   - \newcommand{\bmu}{\boldsymbol{\mu}}
+   - \newcommand{\bv}{\boldsymbol{v}}
+   - \newcommand{\beps}{\boldsymbol{\varepsilon}}
+   - \newcommand{\bbeta}{\boldsymbol{\beta}}
+   - \newcommand{\be}{\boldsymbol{\varepsilon}}
+---
+
+\tableofcontents
+
+
+\newpage 
+
+
+
+## 1 - Présentation du jeu de données
+
+### 1.1 - Description du jeu de données
+
+Nous avons traité un ensemble de données provenant d'une banque aux États-Unis. 
+
+\vspace*{2mm} 
+
+Cette banque fournit également des services d'assurance automobile et organise régulièrement des campagnes pour attirer de nouveaux clients. Les employés de la banque appellent les clients potentiels afin de leur faire connaître les options d'assurance automobile disponibles.
+
+\vspace*{2mm} 
+
+Nous avons des informations générales sur les clients (âge, emploi, etc.) ainsi que des informations plus spécifiques sur la campagne de vente d'assurance en cours (type de communication, dernier jour de contact, ...) et sur les campagnes précédentes (informations sur les tentatives précédentes et leurs résultats).
+
+\vspace*{2mm} 
+
+Nous disposons des données de 4 000 clients qui ont été contactés lors de la dernière campagne et pour lesquels les résultats de la campagne (le client a-t-il acheté une assurance ou non) sont connus. Nous disposons aussi d’un second jeu de données de 1000 autres clients, celui-ci ne comporte pas le résultat de la campagne actuelle.
+
+\vspace*{2mm} 
+
+L'objectif que nous nous sommes fixé est de prédire pour 1000 clients l’achat ou non une assurance automobile. Toute notre démarche, du pre-processing à la présentation de notre meilleur modèle en passant par une analyse descriptive des caractéristiques de notre population, a été détaillée dans les pages suivantes.
+
+\vspace*{2mm} 
+
+Nous avons utilisé le jeu de données disponible ici: https://www.kaggle.com/kondla/carinsurance .
+
+
+### 1.2 - Tableau de description des variables
+
+\includegraphics{Tableau.png}
+
+
+
+```{r , include=FALSE}
+rm(list = ls())
+
+### A décommenter si besoins 
+
+#install.packages("mltools")
+#install.packages("data.table")
+#install.packages("rpart")
+#install.packages("RColorBrewer")
+#install.packages("readxl")
+#install.packages("tidyr")
+#install.packages("Boruta")
+#install.packages("ggplot2")
+#install.packages("randomForest")
+#install.packages("varImp")
+#install.packages("dplyr")
+#install.packages("readr")
+#install.packages("RColorBrewer")
+#install.packages("car")
+#install.packages("lattice")
+#install.packages("latticeExtra")
+#install.packages("corrplot")
+#install.packages("caret")
+#install.packages("neuralnet")
+#install.packages("nnet")
+#install.packages("e1071")
+#install.packages("xgboost")
+#install.packages("questionr")
+#install.packages("ResourceSelection")
+#install.packages("pscl")
+#install.packages("scales")
+
+
+library("mltools")
+library("data.table")
+library("rpart")
+library("RColorBrewer")
+library("readxl")
+library("tidyr")
+library("Boruta")
+library("ggplot2")
+library("randomForest")
+library("varImp")
+library("dplyr")
+library("readr")
+library("RColorBrewer")
+library("car")
+library("lattice")
+library("latticeExtra")
+library("corrplot")
+library("caret")
+library("neuralnet")
+library("nnet")
+library("e1071")
+library("xgboost")
+library("questionr")
+library("ResourceSelection")
+library("pscl")
+library("scales")
+```
+
+
+
+```{r setup, include=FALSE}
+setwd("D:/Guillaume/Github/R-Data_Project-Car-Insurance_Data")
+```
+
+## 2 - Importation des jeux de données train et test
+
+
+```{r }
+data_train =  read.csv(file = 'carInsurance_train.csv')
+data_test =  read.csv(file = 'carInsurance_test.csv')
+```
+
+CarInsurance est la variable que l'on souhaite prédire.
+
+```{r }
+y_train = (select(data_train, CarInsurance))
+y_test = (select(data_test, CarInsurance))
+```
+
+Le problème ici est que nous n'avons pas la target sur l'échantillon de test. 
+
+\vspace*{2mm} 
+
+Après quelques recherches sur internet nous avons trouvé l'output d'une modélisation qui semble sérieuse : https://www.kaggle.com/yonatanrabinovich/car-insurance-cold-calls .
+
+\vspace*{2mm}
+
+
+Nous utiliserons ce dernier pour évaluer notre méthode.
+
+```{r}
+data_from_serious_forecast = read.csv(file = "Insurance Purchase Forcast.csv")
+y_test = select(data_from_serious_forecast, CarInsurance)
+y_test = as.numeric(y_test == "wiil buy insurance")
+data_test["CarInsurance"] = y_test
+```
+
+
+## 3 - Prise en main du jeu de données
+
+Dimension des jeux de données :
+
+```{r }
+nrow(data_train)
+ncol(data_train)
+nrow(data_test)
+ncol(data_test)
+```
+
+
+Nombre de données manquantes au sein de la target.
+
+```{r}
+length(y_train[is.na(y_train)]) 
+length(y_test[is.na(y_test)]) 
+```
+Il n'y a donc aucune valeur manquante au sein de la target, son pré-processing est donc terminé.
+
+
+### 3.1 - Enrichissement du jeu de données
+
+
+En observant les variables explicatives nous remarquons que CallEnd et CallStart sont inutilisables telles quelles.
+Nous allons plutôt garder la durée de l'appel et le moment dans la journée où il a été passé.
+
+```{r}
+translating_in_sec_train = t(matrix(rep(c(3600,60,1),dim(data_train)[1]),nrow=3))
+translating_in_sec_test = t(matrix(rep(c(3600,60,1),dim(data_test)[1]),nrow=3))
+
+call_end_train = strsplit(data_train$CallEnd,':')
+call_end_train = t(matrix(as.numeric(unlist(call_end_train)),nrow=3))
+call_end_train = call_end_train * translating_in_sec_train
+call_end_train_final = call_end_train[,1]+call_end_train[,2]+call_end_train[,3]
+
+call_start_train = strsplit(data_train$CallStart,':')
+call_start_train = t(matrix(as.numeric(unlist(call_start_train)),nrow=3))
+when_call_start_train = call_start_train[,1]
+call_start_train = call_start_train * translating_in_sec_train
+call_start_train_final = call_start_train[,1]+call_start_train[,2]+call_start_train[,3]
+
+call_end_test = strsplit(data_test$CallEnd,':')
+call_end_test = t(matrix(as.numeric(unlist(call_end_test)),nrow=3))
+call_end_test = call_end_test * translating_in_sec_test
+call_end_test_final = call_end_test[,1]+call_end_test[,2]+call_end_test[,3]
+
+call_start_test = strsplit(data_test$CallStart,':')
+call_start_test = t(matrix(as.numeric(unlist(call_start_test)),nrow=3))
+when_call_start_test = call_start_test[,1]
+call_start_test = call_start_test * translating_in_sec_test
+call_start_test_final = call_start_test[,1]+call_start_test[,2]+call_start_test[,3]
+
+call_duration_test = call_end_test_final - call_start_test_final
+call_duration_train =  call_end_train_final - call_start_train_final
+
+```
+
+Afin d'anticiper par avance les problèmes d'échelles nous allons passer l'unité de mesure des variables Call_duration en minutes.
+
+```{r}
+call_duration_test = call_duration_test/60
+call_duration_train = call_duration_train/60
+```
+
+
+\vspace*{15mm} 
+
+Voici les tableaux des heures de la journée où le dernier contact téléphonique a eu lieu.
+
+```{r}
+knitr::kable(table(when_call_start_train))
+```
+
+```{r}
+knitr::kable(table(when_call_start_test))
+```
+
+Nous avons donc créé une variable qualitative à 8 modalités.
+
+```{r}
+data_train$CallStart <- NULL
+data_train$CallEnd <- NULL
+data_train["CallDuration"] =  call_duration_train
+data_train["WhenIsTheCall"] =  when_call_start_train
+
+
+data_test$CallStart <- NULL
+data_test$CallEnd <- NULL
+data_test["CallDuration"] =  call_duration_test
+data_test["WhenIsTheCall"] =  when_call_start_test
+```
+
+
+### 3.2 - Traitement des variables mal définies
+
+
+Nous allons tout d'abord traiter les variables LasContactMonth et LastContactDay :
+ 
+Nous aurions aimer pouvoir construire une nouvelle variable "jour de la semaine" afin de pouvoir déterminer si par exemple les personnes contactées un lundi sont plus susptible de souscrire à notre assurance plûtot que les personnes qui seront contacté un vendredi.
+
+
+Cependant, nous n'avons pas accès à l'année du dernier contact. De plus, la variable DayPassed ne nous permet pas de déduire le jour de création de la base de données. Voici une illustration de ce problème :
+
+```{r}
+index_test_daypassed = which(data_train$DaysPassed != -1 & data_train$DaysPassed < 10)
+days_passed_recently = data_train[index_test_daypassed,]
+days_passed_recently[1:3, c("LastContactDay", "LastContactMonth", "DaysPassed")]
+```
+
+
+Nous remarquons sur les deux premières lignes qu'il y a un jour qui s'est écoulé depuis le dernier contact.
+De plus, le dernier contact était le 4 août ainsi, la base de données aurait été créer le 5 août. 
+
+Cependant, lorsque l'on regarde la 3ème ligne on voit que le dernier contact était le 30 janvier et la variable DaysPassed nous indique qu'il y a 2 jours qui se sont écoulés depuis cette date. 
+
+Ainsi, nous devrions être le 1er février, ce qui est incohérent avec les deux premières lignes. 
+
+Nous allons supprimer les variables LastContactDay et LastContactMonth qui sont de ce fait inutilisables.
+
+```{r}
+data_test$LastContactDay <- NULL
+data_train$LastContactDay <- NULL
+
+data_test$LastContactMonth <- NULL
+data_train$LastContactMonth <- NULL
+```
+
+De même la variable DaysPassed va poser problème sans transformation de notre part. En effet, la valeur -1 est rentrée pour un individu jamais contacté. Sinon cette variable nous donne le nombre de jours écoulés depuis la dernière démarche. Pour résoudre ce problème et rendre la variable plus adaptée et utilisable pour une modélisation future nous allons la transformer en une variable catégorielle. Tout d'abord, observons sa distribution : 
+
+```{r}
+ggplot(data_train, aes(x = DaysPassed) ) + 
+   geom_histogram(binwidth = 10, fill = "#006400") +
+   ggtitle("Représentation du nombre de jours écoulés après que le client a été contacté pour 
+          la dernière fois lors de la précédente campagne") +
+   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 10)) + 
+   scale_x_continuous(name ="Nombre de jours écoulés depuis le dernier contact") +
+   scale_y_continuous(name ="Effectif")
+```
+
+\vspace*{2mm}
+
+Suivant cet histogramme nous allons construire 4 modalités : "Jamais contacté", "Contacté il y a moins de 4 mois", "Contacté entre 4 mois et un an" et "Contacté il y a plus d'un an".
+
+```{r}
+ind_new_client = which(data_train$DaysPassed == -1)
+ind_4_month = which(data_train$DaysPassed != -1 & data_train$DaysPassed < 120)
+ind_4_month_year = which(data_train$DaysPassed >= 120 & data_train$DaysPassed < 365)
+ind_more_year = which(data_train$DaysPassed != -1 & data_train$DaysPassed >= 365)
+
+data_train$DaysPassed[ind_new_client] = "New_Client"
+data_train$DaysPassed[ind_4_month] = "Less_than_4_month"
+data_train$DaysPassed[ind_4_month_year] = "Between_4_month_and_1_year"
+data_train$DaysPassed[ind_more_year] = "More_than_a_year"
+
+
+ind_new_client_test = which(data_test$DaysPassed == -1)
+ind_4_month_test = which(data_test$DaysPassed != -1 & data_test$DaysPassed < 120)
+ind_4_month_year_test = which(data_test$DaysPassed >= 120 & data_test$DaysPassed < 365)
+ind_more_year_test = which(data_test$DaysPassed != -1 & data_test$DaysPassed >= 365)
+
+
+data_test$DaysPassed[ind_new_client_test] = "New_Client"
+data_test$DaysPassed[ind_4_month_test] = "Less_than_4_month"
+data_test$DaysPassed[ind_4_month_year_test] = "Between_4_month_and_1_year"
+data_test$DaysPassed[ind_more_year_test] = "More_than_a_year"
+```
+
+Voici la répartition post-traitement de cette variable: 
+
+
+
+```{r}
+tableau = table(factor(data_train$DaysPassed))
+ggplot(data_train, aes(x = factor(1) , fill = factor(DaysPassed)) ) +
+  geom_bar(width = 1) + coord_polar("y", start = 0)  +
+  ggtitle("Représentation de la répartition des jours écoulés 
+                     aprés le dernier contact") +
+  theme(plot.title = element_text(hjust = 0, face = "bold", size = 12),
+        axis.title = element_blank(), legend.title = element_blank(), 
+        axis.text.y = element_blank() ) + 
+  scale_fill_brewer(palette = "PiYG", labels = c("Entre 4 moins et un an", "Moins de 4 mois", 
+                                                 "Plus d'un an", "Nouveau client")) +
+  annotate(geom="text", x=1, y=1750, label = percent(as.vector(tableau/nrow(data_train)))[4]) +
+   annotate(geom="text", x=1, y=3100, label = percent(as.vector(tableau/nrow(data_train)))[3]) +
+   annotate(geom="text", x=1, y=3300, label = percent(as.vector(tableau/nrow(data_train)))[2]) +
+   annotate(geom="text", x=1, y=3700, label = percent(as.vector(tableau/nrow(data_train)))[1])
+
+```
+
+
+\vspace*{2mm}
+
+Une nouvelle fois, et suivant le même principe, nous allons passer NoOfContacts en variable catégorielle afin d'éviter le sur-apprentissage. 
+
+\vspace*{2mm}
+
+En effet, nous ne souhaitons pas que les modèles créés par la suite fassent une différence entre une personne contacter 34 fois et une personne contactée 8 fois. Dans les deux cas, nous pouvons considérer que cette personne sera lassée de répondre aux appels alors que le modèle risque d'interpréter la première personne comme "plus de 4 fois plus lassée" que la deuxième. 
+
+\vspace*{2mm}
+
+Commençons donc par observer la distribution de NoOfContacts : 
+
+```{r}
+ggplot(data_train, aes(x = NoOfContacts) ) + 
+   geom_histogram(binwidth = 1, fill = "#F1A5B0") +
+   ggtitle("Représentation du nombre de fois que le client a été contacté durant cette campagne") +
+   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 10)) + 
+   scale_x_continuous(name ="Nombre d'appels") +
+   scale_y_continuous(name ="Effectif")
+```
+
+\vspace*{2mm}
+
+Suivant cet histogramme, nous allons construire 5 modalités : "Contacté 1 fois", "Contacté 2 fois", "Contacté 3 fois", "Contacté entre 4 et 7 fois", "Contacté plus de 7 fois".
+
+```{r}
+ind_nb_contact_1 = which(data_train$NoOfContacts == 1)
+ind_nb_contact_2 = which(data_train$NoOfContacts == 2)
+ind_nb_contact_3 = which(data_train$NoOfContacts == 3)
+ind_nb_contact_4 = which(data_train$NoOfContacts >= 4 & data_train$NoOfContacts <=7 )
+ind_nb_contact_5 = which(data_train$NoOfContacts >= 8)
+
+data_train$NoOfContacts[ind_nb_contact_1] = "1_Contact"
+data_train$NoOfContacts[ind_nb_contact_2] = "2_Contact"
+data_train$NoOfContacts[ind_nb_contact_3] = "3_Contact"
+data_train$NoOfContacts[ind_nb_contact_4] = "4_7Contact"
+data_train$NoOfContacts[ind_nb_contact_5] = "8_Contact"
+
+ind_nb_contact_1_test = which(data_test$NoOfContacts == 1)
+ind_nb_contact_2_test = which(data_test$NoOfContacts == 2)
+ind_nb_contact_3_test = which(data_test$NoOfContacts == 3)
+ind_nb_contact_4_test = which(data_test$NoOfContacts >= 4 & data_test$NoOfContacts <=7 )
+ind_nb_contact_5_test = which(data_test$NoOfContacts >= 8)
+
+data_test$NoOfContacts[ind_nb_contact_1_test] = "1_Contact"
+data_test$NoOfContacts[ind_nb_contact_2_test] = "2_Contact"
+data_test$NoOfContacts[ind_nb_contact_3_test] = "3_Contact"
+data_test$NoOfContacts[ind_nb_contact_4_test] = "4_7Contact"
+data_test$NoOfContacts[ind_nb_contact_5_test] = "8_Contact"
+```
+
+Voici la répartition post-traitement de cette variable: 
+
+```{r}
+tableau = table(factor(data_train$NoOfContacts))
+ggplot(data_train, aes(x = factor(1) , fill = factor(NoOfContacts)) ) +
+  geom_bar(width = 1) + coord_polar("y", start=0)  +
+  ggtitle("Représentation du nombre de fois que le client a
+            été contacté durant cette campagne") +
+  theme(plot.title = element_text(hjust = 0, face = "bold", size = 12),
+        axis.title = element_blank(), legend.title = element_blank(), 
+        axis.text.y = element_blank()) + 
+   scale_fill_brewer(palette = "OrRd", labels = c("Contacté une fois", "Contacté deux fois", 
+                                                  "Contacté trois fois", "Contacté entre 3 et 7 fois", 
+                                                  "Contacté 8 ou plus fois")) +
+  annotate(geom="text", x=1, y=100, label = percent(as.vector(tableau/nrow(data_train)))[5]) +
+   annotate(geom="text", x=1, y=500, label = percent(as.vector(tableau/nrow(data_train)))[4]) +
+   annotate(geom="text", x=1, y=1000, label = percent(as.vector(tableau/nrow(data_train)))[3]) +
+   annotate(geom="text", x=1, y=1700, label = percent(as.vector(tableau/nrow(data_train)))[2]) +
+   annotate(geom="text", x=1, y=3000, label = percent(as.vector(tableau/nrow(data_train)))[1])
+
+
+```
+
+\vspace*{2mm}
+
+Pour finir, suivant la même démarche, nous allons passer PrevAttempts en une variable categorielle. 
+
+```{r}
+ggplot(data_train, aes(x = PrevAttempts) ) + 
+   geom_histogram(binwidth = 1, fill = "#6DC4F9") +
+   ggtitle("Représentation du nombre de fois que le client a été contacté avant cette campagne") +
+   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 10)) + 
+   scale_x_continuous(name ="Nombre d'appels") +
+   scale_y_continuous(name ="Effectif")
+```
+
+\vspace*{2mm}
+
+Suivant cet histogramme nous allons construire 4 modalités : "Jamais contacté", "Contacté 1 fois", "Contacté 2 ou 3 fois", "Contacté plus de 3 fois"
+
+```{r}
+ind_nb_prevA_0 = which(data_train$PrevAttempts == 0)
+ind_nb_prevA_1 = which(data_train$PrevAttempts == 1)
+ind_nb_prevA_2 = which(data_train$PrevAttempts >= 2 & data_train$PrevAttempts <= 3)
+ind_nb_prevA_3 = which(data_train$PrevAttempts > 3)
+
+data_train$PrevAttempts[ind_nb_prevA_0] = "0_PrevC"
+data_train$PrevAttempts[ind_nb_prevA_1] = "1_PrevC"
+data_train$PrevAttempts[ind_nb_prevA_2] = "2_3PrevC"
+data_train$PrevAttempts[ind_nb_prevA_3] = "4_PrevC"
+
+ind_nb_prevA_0_test = which(data_test$PrevAttempts == 0)
+ind_nb_prevA_1_test = which(data_test$PrevAttempts == 1)
+ind_nb_prevA_2_test = which(data_test$PrevAttempts >= 2 & data_test$PrevAttempts <= 3)
+ind_nb_prevA_3_test = which(data_test$PrevAttempts > 3)
+
+data_test$PrevAttempts[ind_nb_prevA_0_test] = "0_PrevC"
+data_test$PrevAttempts[ind_nb_prevA_1_test] = "1_PrevC"
+data_test$PrevAttempts[ind_nb_prevA_2_test] = "2_3PrevC"
+data_test$PrevAttempts[ind_nb_prevA_3_test] = "4_PrevC"
+```
+
+Dont voici la répartition post-traitement de cette variable: 
+
+```{r}
+tableau = table(factor(data_train$PrevAttempts))
+ggplot(data_train, aes(x = factor(1) , fill = factor(PrevAttempts)) ) +
+  geom_bar(width = 1) + coord_polar("y", start=0) +
+  ggtitle("Représentation du nombre de fois que le client a 
+               été contacté avant cette campagne") +
+  theme(plot.title = element_text(hjust = 0, face = "bold", size = 12),
+        axis.title = element_blank(), legend.title = element_blank(), 
+        axis.text.y = element_blank()) + 
+   scale_fill_brewer(palette = "BuGn", labels = 
+                        c("Jamais contacté", "Contacté 1 fois", 
+                          "Contacté 2 ou 3 fois","Contacté plus de 3 fois")) +
+   annotate(geom="text", x=1, y=150, label = percent(as.vector(tableau/nrow(data_train)))[4]) +
+   annotate(geom="text", x=1, y=500, label = percent(as.vector(tableau/nrow(data_train)))[3]) +
+   annotate(geom="text", x=1, y=800, label = percent(as.vector(tableau/nrow(data_train)))[2]) +
+   annotate(geom="text", x=1, y=2000, label = percent(as.vector(tableau/nrow(data_train)))[1])
+
+```
+
+
+\vspace*{2mm}
+
+Nous pouvons continuer notre pre-processing par la déclaration de toute variable qualitative en facteur. Commençons par identifier les variables qualitatives déclarées comme "character".
+
+```{r}
+datab_train = select_if(data_train,is.character)
+Names_train = names(datab_train)
+datab_test = select_if(data_test,is.character)
+Names_test = names(datab_test)
+```
+
+Enfin transformons les en facteurs :
+
+```{r}
+data_train[,Names_train] = lapply(data_train[,Names_train], as.factor)
+data_test[,Names_test] = lapply(data_test[,Names_test], as.factor)
+```
+
+
+### 3.3 - Traitement des valeurs manquantes
+
+Consultation d'une ligne au hasard, ici la 345ème au sein du jeu de données :
+
+```{r}
+data_train[345,]
+```
+
+Cela nous fait nous interroger sur les colonnes Communication et Outcome et plus globalement sur la présence de valeurs manquantes. Créons une fonction permettant de référencer les valeurs manquantes.
+
+```{r}
+is_there_na <- function(database){
+  names_col = names(database) 
+  for(i in 1:(length(database))){
+    msg_to_display = paste("La colonne ", names_col[i], " contient ", 
+                           as.character(sum(is.na(database[,i]))), " valeur(s) manquante(s)")
+    print(msg_to_display)
+  }
+}
+
+
+is_there_na(data_train)
+is_there_na(data_test)
+```
+
+Ainsi, nous allons devoir traiter les valeurs manquantes des variables Job, Education, Communication et Outcome.
+
+\vspace*{2mm}
+
+Après consultation de la table donnant la définition de chaque variable, nous nous rendons compte que les valeurs manquantes de Outcome correspondent a un client n'ayant encore jamais été contacté. Ainsi, il nous suffit juste de remplacer les NA par une nouvelle modalité "Nouveau client". 
+
+```{r}
+data_test["Outcome"]=lapply(data_test["Outcome"], as.character)
+data_train["Outcome"]=lapply(data_train["Outcome"], as.character)
+
+data_train$Outcome =data_train$Outcome %>% replace_na("NewClient")
+data_test$Outcome = data_test$Outcome %>% replace_na("NewClient")
+
+data_test["Outcome"]=lapply(data_test["Outcome"],  as.factor)
+data_train["Outcome"]=lapply(data_train["Outcome"],  as.factor)
+
+
+```
+
+\vspace*{2mm}
+
+Concernant la variable Communication nous allons d'abord regarder si elle a un impact sur la target car au vu de sa description (cf partie 1.2) ça ne devrait pas être le cas. Pour cela, nous allons utiliser les randoms forest pour faire de la  feature importance, ceci peut être fait avec la librairie Boruta :
+
+\vspace*{2mm}
+
+Commençons par supprimer toutes les observations contenant des valeurs manquantes, temporairement, afin d'appliquer les random forest pour feature importance :
+
+```{r}
+data_train_before_RF = filter(data_train, !is.na(Communication)) 
+data_train_before_RF = filter(data_train_before_RF, !is.na(Job))
+data_train_before_RF = filter(data_train_before_RF, !is.na(Education))
+```
+
+```{r, message = FALSE}
+boruta <- Boruta(CarInsurance ~ ., data = data_train_before_RF, doTrace = 2, maxRuns = 500)
+print(boruta)
+plot(boruta, las = 2, cex.axis = 0.7)
+```
+
+On se rend compte que la variable Communication n'a pas "d'importance". Nous allons tout simplement supprimer cette variable ce qui résoud le problème de valeur manquante au sein de cette dernière.
+
+```{r}
+data_test$Communication <- NULL
+data_train$Communication <- NULL
+```
+
+\vspace*{2mm}
+
+Pour finir, occupons nous des variables Job et Education. Au vu de la définition de ces variables nous allons appliquer une méthode des plus proches voisins.
+
+
+
+```{r}
+class_mod_Job_test = rpart(Job ~ . -CarInsurance, 
+                           data = data_test[!is.na(data_test$Job), ], method = "class", 
+                           na.action = na.omit)
+class_mod_Job_train = rpart(Job ~ . -CarInsurance, 
+                            data = data_train[!is.na(data_train$Job), ], method = "class", 
+                            na.action = na.omit)
+
+data_train$Job[is.na(data_train$Job)] = predict(class_mod_Job_train, 
+                                                data_train[is.na(data_train$Job), ], type = "class")
+data_test$Job[is.na(data_test$Job)] = predict(class_mod_Job_test, 
+                                              data_test[is.na(data_test$Job), ], type = "class")
+
+
+class_mod_Education_test = rpart(Education ~ . - CarInsurance, 
+                                 data = data_test[!is.na(data_test$Education), ], method = "class", 
+                                 na.action = na.omit)
+class_mod_Education_train = rpart(Education ~ . - CarInsurance, 
+                                  data=data_train[!is.na(data_train$Education), ], method = "class", 
+                                  na.action = na.omit)
+
+data_test$Education[is.na(data_test$Education) ] = predict(class_mod_Education_test, 
+                                                           data_test[is.na(data_test$Education), ], 
+                                                           type ="class")
+data_train$Education[is.na(data_train$Education) ] = predict(class_mod_Education_train, 
+                                                             data_train[is.na(data_train$Education), ], 
+                                                             type ="class")
+
+```
+
+\vspace*{2mm}
+
+Verifions qu'il n'y a plus de valeurs manquantes.
+
+```{r}
+is_there_na(data_train)
+is_there_na(data_test)
+```
+
+\vspace*{2mm}
+
+Nous pouvons terminer cette partie "prise en main du jeu de données" par un overview rapide des deux datasets obtenus et le passage en "type facteur" des variables explicatives lorsque c'est justifié :
+
+```{r}
+Names_train = c("Default", "HHInsurance", "CarLoan", "WhenIsTheCall", "CarInsurance")
+Names_test = c("Default", "HHInsurance", "CarLoan", "WhenIsTheCall", "CarInsurance")
+data_train[,Names_train] = lapply(data_train[,Names_train], as.factor)
+data_test[,Names_test] = lapply(data_test[,Names_test], as.factor)
+
+
+
+summary(data_train)
+summary(data_test)
+```
+
+
+## 4 - Analyse descriptives de notre population
+
+Visualisons la répartition des deux variables les plus "importantes" d'après la "feature importance" : CallDuration et Outcome.
+
+```{r}
+ggplot(data_train, aes(y = as.numeric(CarInsurance) , x = CallDuration, 
+                       colour = as.numeric(CarInsurance)) ) + 
+   geom_jitter() + 
+   ggtitle("Représentation de la répartition du temps d'appel en fonction de la variable cible") +
+   theme(plot.title = element_text(hjust = 1, face = "bold", size = 12), axis.title.y = element_blank(),
+         legend.position = "none") + 
+   labs(x ="Temps de l'appel (en minutes)", fill = "Temps de l'appel (en minutes)") +
+   scale_y_continuous(breaks=c(1,2), labels = c("1.0" = "N'a pas souscrit", "2.0" = "A souscrit"))
+```
+
+On remarque que les personnes ayant souscrit à une assurance automobile sont restées plus longtemps au téléphone avec les conseillers que les personnes n'ayant pas souscrit, ce qui est plutôt cohérent. Cela vient confirmer le résultat obtenu avec Boruta puisqu'on s'apperçoit que cette variable est clairement discriminante dans la prédiction d'une nouvelle observation.
+
+\vspace*{2mm}
+
+Penchons-nous désormais sur la variable Outcome. Tout d'abord, regardons le résultat de la dernière campagne : 
+
+```{r}
+outcome = as.data.frame(table(data_train$Outcome))
+
+names(outcome) = c("Modalités", "Fréquence")
+
+ggplot(outcome, aes(x = Modalités , y = Fréquence, fill = Modalités) )  + 
+  geom_bar(stat="identity") + coord_flip() + 
+  ggtitle("Représentation des résultats de la derniere campagne") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+        axis.title.y = element_blank(), legend.title = element_blank(), 
+        axis.text.y = element_blank()) + 
+   scale_x_discrete(limits=c("success", "other", "NewClient","failure")) + 
+   scale_fill_brewer(palette="Set1", labels = c("Echec","Nouveau Client","Autre","Succès"))
+```
+Les modalités "Échec" et "Succès" sont plutôt équilibrés. Determinons s'il en est de même pour la campagne actuelle : 
+
+```{r}
+tableau = table(factor(data_train$CarInsurance))
+ggplot(y_train, aes(x = factor(1) , fill = factor(CarInsurance)) ) +
+  geom_bar(width = 1) + coord_polar("y", start=0) +
+  ggtitle("Répartition des souscription de l'assurance 
+   automobile proposé (variable cible)") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 12),
+        axis.title = element_blank(), legend.title = element_blank(), 
+        axis.text.y = element_blank()) + 
+   scale_fill_discrete(labels = c("N'a pas souscrit", "A souscrit")) +
+   annotate(geom="text", x=1, y=800, label = percent(as.vector(tableau/nrow(data_train)))[2]) +
+   annotate(geom="text", x=1, y=3000, label = percent(as.vector(tableau/nrow(data_train)))[1])
+```
+
+Aucun souci lié à la répartition de la réponse au sein de la target elle n'est donc pas à traiter. Nous n'aurons pas besoin pour ce projet d'adapter les métriques d'évaluation au sein de nos différentes modélisations. 
+
+
+## 5 - Traitement des variables explicatives qualitatives
+
+
+Nous allons tout d'abord appliquer une technique de One Hot Encoding à nos variables explicatives qualitatives. Cette méthode consiste à transformer ces variables de type n modalités : 1, 2, 3 ... n en n colonnes composées de 0 ou de 1 indiquant si l'observation prend la modalité associée à la colonne. 
+
+\vspace*{2mm}
+
+Le one hot encoding permet donc de supprimer tout potentiel biais dû à l'ordre des modalités en plus de gagner en efficience lors de la période d'apprentissage des différents modèles de machine learning que nous allons implémenter. 
+
+
+```{r}
+quali_col <- c("Job", "Marital", "Education", "NoOfContacts", "DaysPassed", 
+               "PrevAttempts","Outcome","WhenIsTheCall")
+data_train <- cbind(data_train,one_hot(as.data.table(data_train[,quali_col])))
+data_train[,quali_col] <- NULL
+
+data_test <- cbind(data_test,one_hot(as.data.table(data_test[,quali_col])))
+data_test[,quali_col] <- NULL
+
+#Evitons les - qui aboutiront a des problemes de format plus tard
+
+names(data_train)[10] = "Job_blue_collar"
+names(data_train)[15] = "Job_self_employed"
+
+names(data_test)[10] = "Job_blue_collar"
+names(data_test)[15] = "Job_self_employed"
+
+#Transformons maintenant les colonnes du One Hot Encoding en facteur 
+
+col_to_factor = names(data_train)[9:51]
+data_train[,col_to_factor] = lapply(data_train[,col_to_factor], as.factor)
+data_test[,col_to_factor] = lapply(data_test[,col_to_factor], as.factor)
+
+str(data_train)
+#Verification ok
+
+```
+
+
+## 6 - Sélection des variables
+
+Dans un premier temps, étudions la présence d'éventuelles corrélations entre les variables explicatives.
+
+```{r, fig.height = 25, fig.width = 25}
+data_train_cor= as.data.frame(lapply(data_train[,names(data_train)], as.numeric))
+r = round(cor(data_train_cor),2)
+corrplot(r,method="ellipse")
+```
+
+On remarque tout d'abord une corrélation non-négligeable de la target avec la plupart des variables que nous avons créées ce qui justifie une fois de plus leur ajout.
+
+\vspace*{2mm}
+
+Il est également possible d'observer une corrélation de 1 entre les variables Outcome_NewClient et DaysPassed_New_Client. En effet, elles apportent la même information. De ce fait, nous allons supprimer DaysPassed_New_Clien : 
+
+```{r}
+data_train[,"DaysPassed_New Client"] <- NULL
+data_test[,"DaysPassed_New Client"] <- NULL
+```
+
+\vspace*{2mm}
+
+Également ce tableau met en avant des redondances dans le traitement actuel des variables qualitatives par one hot encoding. On observe une forte corrélation, négativement, entre "Marital_married" et "Marital_single". En effet, soit on est marié soit on est seul. Nous pouvons donc supprimer la varible "Marital_married", et non la variable "Marital_single" puisqu'on peut être seul et divorcé, ou seul et sans jamais avoir été marié. 
+
+\vspace*{2mm}
+
+Ainsi un one hot encoding sur les variables "Marital_single" et "Marital_divorced" apporte toute l'information contenue actuellement dans les colonnes "Marital_single","Marital_married" et "Marital_divorced". 
+
+
+```{r}
+data_train[,"Marital_married"] <- NULL
+data_test[,"Marital_married"] <- NULL
+```
+
+Suivant la même démarche, nous pouvons supprimer "Education_tertiary"
+
+```{r}
+data_train[,"Education_tertiary"] <- NULL
+data_test[,"Education_tertiary"] <- NULL
+```
+
+\vspace*{2mm}
+
+Pour l'instant, nous ne ferrons pas d'autre suppression de variables, mais gardons ce tableau en tête pour la suite de ce projet.
+
+## 7 - Feature scaling
+
+On remarque que la variable explicative Balance prend des valeurs trop "grandes" relativement à d’autres (comme Age ou CallDuration), nous sommes confrontés à des problèmes d’échelle. En effet, cette dernière risque de ralentir la convergence des algorithmes d'apprentissage que nous utiliserons par la suite et donc de les rendre moins performant. Pour éviter ce problème, il faut effectuer au préalable sur cette variable une "renormalisation".
+
+\vspace*{2mm}
+
+Il existe plusieurs techniques de renormalisation : Min-max normalization, Mean normalization, Standardization, ... Afin d'en choisir une analysons là de plus près :
+
+```{r}
+summary(data_train$Balance)
+
+ggplot(data_train) +
+  aes(x = "Balance", y = Balance) +
+  geom_boxplot(alpha=0.5) + 
+  xlab("Distribution de la variable Balance") +
+  ylab("Solde annuel moyen en dollars")
+```
+\vspace*{2mm}
+
+Ce graphique en boite à moustache est très pertinent dans la mesure où il nous indique la présence d'un outlier (Balance = 98 417) en plus de nous donner un bref aperçu de la distribution de cette variable. Avant toute renormalisation, il nous faut donc traiter cet outlier. Observons si on croise une valeur similaire dans les données à prédire : 
+
+```{r}
+summary(data_test$Balance)
+```
+On se rend compte grâce à la commande summary que ce n'est pas le cas. Ainsi, nous allons tout simplement supprimer cet outlier puisqu'il ne peut que biaiser notre apprentissage.
+
+```{r}
+ind_outlier = which(data_train$Balance > 75000)
+data_train = data_train[-ind_outlier,]
+y_train = y_train[-ind_outlier,]
+```
+
+Au vu du boxplot précédent et après ce traitement de l'outlier, nous allons appliquer une renormalisation de type "Standardization" à notre variable "Balance" : 
+
+```{r}
+data_train$Balance = (data_train$Balance - mean(data_train$Balance))/sd(data_train$Balance)
+
+data_test$Balance = (data_test$Balance - mean(data_test$Balance))/sd(data_test$Balance)
+```
+
+Nous considérons désormais notre jeu de données prêt pour la modélisation.
+
+## 8 - Modélisation
+
+Au vu du nombre de variables (important) ayant un fort pouvoir explicatif sur le modèle, nous n'allons pas faire de modélisation du type SVM et KNN.
+
+### 8.1 - Régression logistique
+
+Commençons par une modélisation utilisant toutes les variables explicatives à notre disposition.
+
+```{r}
+regression_log = glm(CarInsurance ~ . -Id, data_train, family = 'binomial')
+summary(regression_log)
+```
+Voici quelques indicateurs statistiques :
+
+```{r}
+pR2(regression_log)
+```
+
+On regarde ici le pseudo-R de McFadden : 0.3809756, notre modèle n'est pas optimal. Commençons par effectuer une méthode de step by step afin de sélectionner les variables de modélisation : 
+
+```{r, results = "hide"}
+step(regression_log, direction = "forward")
+```
+
+```{r, results = "hide"}
+step(regression_log, direction = "backward")
+```
+
+
+```{r, results = "hide"}
+step(regression_log, direction = "both")
+```
+Grâce à la méthode pas à pas, nous pouvons identifier un modèle pertinent. Pour information, nous en avons effectué 3 (both, forward et backward) pour maximiser nos chances de trouver le modèle "optimal". En effet, dans certains cas, il est possible que ces procédures trouvent des modèles légèrement différents. Ici, 2 ont été identifiés. Essayons les deux : 
+
+```{r, warning = FALSE}
+reg_retenue_1  = glm(CarInsurance ~ HHInsurance + CarLoan + CallDuration + 
+    Job_blue_collar + Job_entrepreneur + Job_management + Job_retired + 
+    Job_self_employed + Job_student + Marital_single + Education_primary + 
+    Education_secondary + NoOfContacts_1_Contact + NoOfContacts_2_Contact + 
+    NoOfContacts_3_Contact + DaysPassed_Between_4_month_and_1_year + 
+    DaysPassed_Less_than_4_month + DaysPassed_More_than_a_year + 
+    Outcome_failure + Outcome_other + WhenIsTheCall_14 + WhenIsTheCall_16,
+    family='binomial',data = data_train)
+
+print(reg_retenue_1)
+```
+
+```{r, warning = FALSE}
+reg_retenue_2  = glm(CarInsurance ~ HHInsurance + CarLoan + CallDuration + 
+    Job_blue_collar + Job_entrepreneur + Job_management + Job_retired + 
+    Job_self_employed + Job_student + Marital_single + Education_primary + 
+    Education_secondary + NoOfContacts_1_Contact + NoOfContacts_2_Contact + 
+    NoOfContacts_3_Contact + DaysPassed_Between_4_month_and_1_year + 
+    DaysPassed_Less_than_4_month + DaysPassed_More_than_a_year + 
+    Outcome_failure + Outcome_other + WhenIsTheCall_14 + WhenIsTheCall_16
+    + Job_admin. , family='binomial',data = data_train)
+
+print(reg_retenue_2)
+```
+Au vu de l'AIC, nous pouvons admettre que ces modèles sont équivalents (3392 vs. 3393). Par défaut, nous allons conserver le plus petit.
+
+```{r}
+summary(reg_retenue_1)
+```
+
+Ainsi, nous sommes en mesure de présenter notre première prédiction, puis de la comparer avec celle trouvée sur Internet. 
+
+Évaluation sur l'échantillon d'apprentissage :
+
+```{r}
+predtrain_retenue = predict(reg_retenue_1, data_train, type="response")
+ind_positiv = which(predtrain_retenue > 0.5)
+predtrain_retenue[ind_positiv] = 1 
+predtrain_retenue[-ind_positiv] = 0
+predtrain_retenue = as.factor(predtrain_retenue)
+confusionMatrix(data=predtrain_retenue,reference=data_train$CarInsurance)
+```
+
+Nous obtenons une accuracy et une sensibilité correcte (0.8 et 0.88 respectivement). On prédit donc bien les clients qui ne souscriront pas à notre assurance. Cependant, notre spécificité est de 0.7 ce qui est bien, mais sans plus, on prédit assez bien les personnes qui souscriront à notre assurance.
+
+\vspace*{2mm}
+
+Nous obtenons des résultats similaires sur l'échantillon test, ce qui est synonyme d'un bon pouvoir de généralisation de notre modèle : 
+
+```{r}
+predtest_retenue = predict(reg_retenue_1, data_test, type="response")
+ind_positiv_test = which(predtest_retenue > 0.5)
+predtest_retenue[ind_positiv_test] = 1 
+predtest_retenue[-ind_positiv_test] = 0
+predtest_retenue = as.factor(predtest_retenue)
+confusionMatrix(data=predtest_retenue,reference=data_test$CarInsurance)
+```
+
+Voici la répartition de notre prédiction avec la méthode de régression logistique :
+
+
+```{r}
+table(predtest_retenue)
+```
+
+
+### 8.2 - Random Forest
+
+Essayons maintenant les Random Forest. Tout d'abord, nous allons chercher les meilleurs paramètres. On cherche le meilleur "mtry" qui correspond au nombre de régresseur choisi aléatoirement pour la construction des "ntree", arbres qui comprosent la forêt.
+
+```{r}
+t = tuneRF(subset(data_train, select = -c( CarInsurance , Id )) ,
+            as.factor(data_train$CarInsurance), stepFactor = 0.5, plot = TRUE, 
+            ntreeTry = 500, trace = FALSE, improve = 0.05)
+```
+On remarque que l'erreur est minimale pour un mtry égale à 6.
+
+On cherche ensuite le meilleur "ntree" : 
+
+```{r}
+randomforest_test = randomForest(CarInsurance~.-Id , data_train , ntree = 1000, mtry = 6)
+plot(randomforest_test)
+```
+
+On remarque qu'à partir de 200 arbres l'erreur ne diminue pas significativement. Ainsi, nous choisirons le modèle randomForest suivant : 
+
+```{r}
+randomforest = randomForest(CarInsurance~.-Id, data_train , ntree = 200, mtry = 6)
+print(randomforest)
+```
+
+
+On remarque que l'erreur sur la classe "Client souscrivant à l'assurance automobile" a une erreur importante, on se trompe environ une fois sur 4. 
+
+
+On va ensuite prédire la réponse de nos clients test :
+
+```{r}
+p1 = predict(randomforest, data_test)
+table(p1)
+```
+
+On compare à la base de données prédite trouvée sur kaggle :
+
+```{r}
+confusionMatrix(p1, as.factor(y_test))
+```
+
+Nous avons une accuracy de 80% et une sensitivité de 83% ce qui est légèrement moins bon que la régression logistique. En revanche, nous augmentons la spécificité avec ce modèle : elle est maintenant de 75% (contre 72% précédemment). Nous faisons donc mieux pour prédire les personnes voulant souscrire à une assurance automobile. 
+
+\vspace*{2mm}
+
+Il est donc intéressant de noter que notre choix de modèle entre Random Forest/ Régression logistique dépendra du destinataire de l'étude. Selon s'il accorde plus d'importance au taux de vrais positifs ou au taux de vrais négatifs.
+
+
+### 8.3 - Réseaux de neurones
+
+Essayons maintenant d’implémenter un réseau de neurones. Après plusieurs recherches nous avons trouvé que la librairie Keras, connue pour la création et l'entrainement de réseaux de neurones sous Python, est aussi disponible sous R. Notez donc que pour cette partie python doit être installé sur votre ordinateur. Également, afin de reperformer les résultats obtenus dans la suite de cette partie il sera nécessaire de :
+
+\vspace*{2mm}
+
+      1) Installer la dernière version de Rtools via cran-r, et la liée au chemin (cf instruction du cran).
+
+\vspace*{2mm}
+
+      2) Installer reticulate via la commande install.packages de R.  
+
+\vspace*{2mm}
+
+      3) Créer un environnement puis installer tensorflow. 
+
+\vspace*{2mm}
+
+      4) Finaliser l'installation avec la commande install_tensorflow().
+
+\vspace*{2mm}
+
+      5) Installer Keras et Tensorflow via la commande install.packages de R.
+      
+      
+\vspace*{2mm}
+
+
+```{r, warning = FALSE, results = "hide"}
+
+## À décommenter si besoins
+
+#install.packages("reticulate")
+library(reticulate)
+
+## Create a new environment 
+
+conda_create('r-reticulate')
+#install tensorflow
+
+conda_install("r-reticulate", "tensorflow")
+#install_tensorflow()
+
+
+#install.packages("keras")
+#install.packages("tensorflow")
+
+library("keras")
+library("tensorflow")
+```
+
+
+
+Tout d'abord, construisons une matrice, X, correspondant à l'ensemble de nos observations : 
+
+```{r, include=FALSE}
+X_app <- data_train %>% select(-c(CarInsurance,Id)) %>% as.matrix
+X_test <- data_test %>% select(-c(CarInsurance,Id)) %>% as.matrix
+mode(X_app) = "numeric"
+mode(X_test) = "numeric"
+```
+
+
+Construisons à présent notre réseau de neurones. Tout d'abord, notons que notre échantillon d'apprentissage comporte 47 variables explicatives. La première couche sera donc formée de 47 neurones. 
+
+\vspace*{2mm}
+
+Nous pouvons également de suite affirmer que la dernière couche du réseau ne sera composé que d'un seul neuronne puisque nous faisons ici de la classification binaire. Classiquement, l'essentiel du problème sera de déterminer le nombre de couches cachées et le nombre de neurones les composants.
+
+\vspace*{2mm}
+
+Commençons par déterminer le nombre de couches adapté à notre modèle (avec une structure pyramidale assez basique pour l'instant en terme de nombre de neurones du type : 47 70 70 20 1). Nous testerons un réseau à 1, 2, 3, 5 et 7 couches cachées. Pour le moment essayer avec un plus grand nombre de couches cachées semble inutile au vu de notre problématique. Si néanmoins, c'est le cas les premières analyses présentées ci-dessous nous l'indiqueront et nous ferons d'autres tests en ce sens. 
+
+\vspace*{2mm}
+
+Essayer avec moins d'une couche cachée sortirait du cadre de cette modélisation réseaux neuronaux, cela nous renvoit tout simplement à un modèle linéaire. 
+
+\vspace*{2mm}
+
+Commençons avec le réseau à une couche cachée :
+
+
+```{r}
+#Notez que le choix des paramètres utilisés ici est documenté après ce bloc de code
+nb_epochs = 150 
+choice_batch_size = 30
+model_1 <- keras_model_sequential()
+
+
+model_1 %>% 
+   layer_dense(units = 70, activation = 'relu', input_shape = ncol(X_app))  %>% 
+   layer_dense(units = 1,activation = 'sigmoid')
+
+#Choix de la fonction de perte, de l'optimiseur et de la métrique
+model_1 %>% compile(loss = 'binary_crossentropy',optimizer = "adam",metrics = c('accuracy'))
+```
+
+
+
+```{r}
+#On entraîne le réseau sur les données d'apprentissage : 
+
+my_model = model_1 %>% keras::fit(X_app, y_train, epochs = nb_epochs, batch_size =
+                             choice_batch_size, validation_split = 0.2)
+
+```
+
+```{r}
+ggplot() + 
+  geom_line(aes(x = 1:150, y = my_model$metrics$accuracy, color = "blue")) +
+  geom_line(aes(x = 1:150, y = my_model$metrics$val_accuracy), color = "green") + 
+  ggtitle("Accuracy de notre modèle") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 12), legend.title = element_blank()) + 
+  scale_color_manual(values = c("train" = "grey", "test" = "green")) +
+  xlab("epoch") + ylab("Accuracy")
+```
+
+Notons que loss et accuracy indiquent respectivement la perte et l'accuracy du modèle sur les données d'apprentissage. val_loss et val_acc sont les mêmes métriques, mais sur l'échantillon test construit au sein de notre échantillon d'apprentissage. 
+
+\vspace*{2mm}
+
+Profitons de cette première modélisation pour exposé le choix de nos paramètres. Nous avons fixé le nombre d'epochs à 150, c'est-à-dire que notre réseau va parcourir 150 fois X_app durant sa phase d'apprentissage avec un batch_size de 30. Pour rappel, le batch_size désigne le nombre d'individus utilisé par le réseau pour mettre à jour ses poids au cours d'une itération. Classiquement, pour ce genre de problème, il est fixé à 30, ce que nous avons fait donc.
+
+\vspace*{2mm}
+
+En outre, suivant la répartition de la target présentée par le dernier graphique de la partie 4, nous avons choisi l'accuracy comme métrique d'évaluation. Étant dans le cas d'une classification binaire notre fonction de perte sera la "binary_crossentropy" suivant les préconisations de la documentation Keras. Le choix de l'algorithme adam se justifie par l'efficience de ce dernier par rapport à une simple descente de gradient par rétro-propagation par exemple. 
+
+\vspace*{2mm}
+
+Concernant les fonctions d'activation du réseau, il faut distinguer 2 cas :
+
+
+      - ReLu sera choisie pour les couches cachées, en effet, cette fonction d'activation est aujourd'hui très populaire au sein de la communauté IA     puisqu'elle a le bon goût de permettre une formule de chain rule plus "simple" et donc de rendre l'algorithme de descente de gradient plus efficace, notamment lorsque notre réseau contient beaucoup de couches cachées (Deep Learning).
+
+\vspace*{2mm}
+
+      - Pour la dernière couche de notre réseau, étant dans le cadre d'une classification binaire, la fonction sigmoid sera retenue.
+
+
+Passons donc à un réseau de neurones à 2 couches cachées et regardons si cela permet d'augmenter notre accuracy (afin d'éviter le sur-apprentissage, nous insérerons désormais du dropout entre chaque couche cachée) : 
+
+```{r}
+model_2 <- keras_model_sequential()
+
+
+model_2 %>% 
+   layer_dense(units = 70, activation = 'relu', input_shape = ncol(X_app)) %>%
+   layer_dropout(rate=0.4)%>%
+   layer_dense(units = 70, activation = 'relu') %>%
+   layer_dense(units = 1,activation = 'sigmoid')
+
+model_2 %>% compile(loss = 'binary_crossentropy',optimizer = "adam",metrics =
+                      c('accuracy'))
+
+my_model_2 = model_2 %>% keras::fit(X_app, y_train, epochs = nb_epochs, 
+                                    batch_size = choice_batch_size, 
+                                    validation_split = 0.2)
+
+```
+```{r}
+ggplot() + 
+  geom_line(aes(x = 1:150, y = my_model_2$metrics$accuracy, color = "blue")) +
+  geom_line(aes(x = 1:150, y = my_model_2$metrics$val_accuracy), color = "green") + 
+  ggtitle("Accuracy de notre modèle") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 12), legend.title = element_blank()) + 
+  scale_color_manual(values = c("train" = "grey", "test" = "green")) +
+  xlab("epoch") + ylab("Accuracy")
+```
+Nous pouvons voir que nous n'améliorons pas significativement notre accuracy sur l'échantillon de test. Ainsi, nous allons garder un modèle à deux couches pour la suite. Essayons par curiosité d'enlever le dropout et étudions l'impact de cela : 
+
+```{r}
+model_3 <- keras_model_sequential()
+
+
+model_3 %>% 
+   layer_dense(units = 70, activation = 'relu', input_shape = ncol(X_app)) %>%
+   layer_dense(units = 70, activation = 'relu') %>%
+   layer_dense(units = 1,activation = 'sigmoid')
+
+model_3 %>% compile(loss = 'binary_crossentropy',optimizer = "adam",metrics =
+                      c('accuracy'))
+
+my_model_3 = model_3 %>% keras::fit(X_app, y_train, epochs = nb_epochs, 
+                                    batch_size = choice_batch_size, 
+                                    validation_split = 0.2)
+
+```
+```{r}
+
+ggplot() + 
+  geom_line(aes(x = 1:150, y = my_model_3$metrics$accuracy, color = "blue")) +
+  geom_line(aes(x = 1:150, y = my_model_3$metrics$val_accuracy), color = "green") + 
+  ggtitle("Accuracy de notre modèle") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 12), legend.title = element_blank()) + 
+  scale_color_manual(values = c("train" = "grey", "test" = "green")) +
+  xlab("epoch") + ylab("Accuracy")
+```
+Nous n'avons pas détérioré notre accuracy sur l'échantillon test mais l'avons significativement améliorée sur l'échantillon d'apprentissage. Ainsi, pour un modèle à 2 couches cachées, dans notre cas, nous ne sommes pas sujet au sur-apprentissage. Inutile donc ici de faire du dropout.
+
+\vspace*{2mm}
+
+Testons maintenant plusieurs structures de réseaux neuronaux en terme de nombre de neurones par couche. Tout d'abord, que se passe-t-il si nous diminuons le nombre de neurones par couche ?
+
+```{r}
+model_4 <- keras_model_sequential()
+
+
+model_4 %>% 
+   layer_dense(units = 50, activation = 'relu', input_shape = ncol(X_app)) %>%
+   layer_dense(units = 30, activation = 'relu') %>%
+   layer_dense(units = 1,activation = 'sigmoid')
+
+model_4 %>% compile(loss = 'binary_crossentropy',optimizer = "adam",metrics =
+                      c('accuracy'))
+
+my_model_4 = model_4 %>% keras::fit(X_app, y_train, epochs = nb_epochs, 
+                                    batch_size = choice_batch_size, 
+                                    validation_split = 0.2)
+
+```
+```{r}
+ggplot() + 
+  geom_line(aes(x = 1:150, y = my_model_4$metrics$accuracy, color = "blue")) +
+  geom_line(aes(x = 1:150, y = my_model_4$metrics$val_accuracy), color = "green") + 
+  ggtitle("Accuracy de notre modèle") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 12), legend.title = element_blank()) + 
+  scale_color_manual(values = c("train" = "grey", "test" = "green")) +
+  xlab("epoch") + ylab("Accuracy")
+```
+Nous avons donc trouvé notre bon modèle. Faire encore diminuer le nombre de neurones par couche ne serait, par convention, pas pertinent. La règle étant qu'on ne met pas moins de neurones sur la première couche cachée que la dimension de notre matrice en entrée (ici 47). Ainsi, nous allons conserver cette structure. Passons donc maintenant à la prédiction des données X_test : 
+
+```{r}
+p1 = model_4 %>% predict(X_test) %>% `>`(0.5)
+p1 = as.numeric(p1)
+p1 = as.factor(p1)
+table(p1)
+confusionMatrix(p1, as.factor(y_test))
+```
+Remarquons que nous augmentons encore notre spécificité par rapport aux modélisations précédentes. Pour terminer, essayons un modèle Xgboost.
+
+
+### 8.4 - Xgboost - Extreme Gradient Boosting
+
+Nous allons commencer par trouver l'hyperparamètre "max.depth", la profondeur maximale des arbres, par validation croisée. Nous fixerons pour l'instant l'autre hyper-paramètre "nrounds" (le nombre d'arbres à entraîner) à 20 pour l'instant.
+
+\vspace*{2mm}
+
+Pour information, "nthread" etant le nombre de CPU de l'ordinateur alloué à faire tourner ce code, libre à chacun de l'adapter en fonction des caractéristiques de son ordinateur. Pour information, afin de savoir son nombre de CPU : Ctrl+alt+supp -> gestionnaire des taches -> onglet performance -> onglet CPU.
+
+```{r, results = "hide"}
+set.seed(101) # afin de pouvoir reproduire les mêmes sorties à chaque fois.
+
+n_row = dim(data_train)[1]
+sample <- sample.int(n = n_row, size = floor(0.8*n_row), replace = F)
+
+data_app <- data_train[sample, ]
+data_crossV  <- data_train[-sample, ]
+
+y_XGB_app = data_app$CarInsurance
+y_XGB_crossV = data_crossV$CarInsurance
+
+data_crossV$CarInsurance <- NULL
+data_app$CarInsurance <- NULL
+data_test$CarInsurance <- NULL
+
+test_err_list = c()
+train_err_list = c()
+for (d in 4:20){
+   Grad_bost <- xgboost(data = data.matrix(data_app), 
+                        label = data.matrix(y_XGB_app), max.depth = d, 
+                        eta = 1, nthread= 4, nrounds = 20, 
+                        objective = "binary:logistic")
+   
+   pred_train <- predict(Grad_bost, data.matrix(data_app))
+   
+   err <- mean(as.numeric(pred_train > 0.5) != y_XGB_app)
+   train_err_list = c(train_err_list,err)
+   
+   pred <- predict(Grad_bost, data.matrix(data_crossV))
+   prediction <- as.numeric(pred > 0.5)
+   
+   err_test <- mean(prediction != y_XGB_crossV)
+   test_err_list = c(test_err_list,err_test)
+}
+x <- 4:20
+df_xgboost <- data.frame(x,test_err_list,train_err_list)
+```
+
+```{r, results = "hide"}
+
+ggplot(df_xgboost, aes(x)) +                    
+  geom_line(data = df_xgboost, aes(x = x, y = test_err_list, colour = "Erreur test") )+  
+  geom_line(data = df_xgboost, aes(x = x, y = train_err_list, colour = "Erreur train") ) + 
+  ggtitle("Evolution des erreurs train et test 
+      par rapport à la profondeur max des arbres composant le modèle") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14), 
+        legend.title = element_blank() ) + 
+  xlab("Profondeur max des arbres") +
+  ylab("Erreur de classification")
+
+#Compromis biais - variance pour max.depth = 4
+```
+
+Ainsi, afin d'éviter le sur-apprentissage, nous allons fixer la profondeur maximale des arbres à 4. Cherchons maintenant "nrounds" (le nombre d'arbres à entraîner) minimisant le compromis biais variance par validation croisée. 
+
+```{r, results = "hide"}
+
+test_err_list = c()
+train_err_list = c()
+for (i in 1:50){
+   Grad_bost <- xgboost(data = data.matrix(data_app), 
+                        label = data.matrix(y_XGB_app), max.depth = 4, 
+                        eta = 1, nthread= 4, nrounds = i, 
+                        objective = "binary:logistic")
+   
+   pred_train <- predict(Grad_bost, data.matrix(data_app))
+   
+   err <- mean(as.numeric(pred_train > 0.5) != y_XGB_app)
+   train_err_list = c(train_err_list,err)
+   
+   pred <- predict(Grad_bost, data.matrix(data_crossV))
+   prediction <- as.numeric(pred > 0.5)
+   
+   err_test <- mean(prediction != y_XGB_crossV)
+   test_err_list = c(test_err_list,err_test)
+}
+x <- 1:50
+df_xgboost <- data.frame(x,test_err_list,train_err_list)
+```
+
+```{r, results = "hide"}
+
+ggplot(df_xgboost, aes(x)) +                    
+  geom_line(data = df_xgboost, aes(x = x, y = test_err_list, colour = "Erreur test") )+  
+  geom_line(data = df_xgboost, aes(x = x, y = train_err_list, colour = "Erreur train") ) + 
+  ggtitle("Evolution des erreurs train et test 
+      par rapport au nombre d'arbres composant le modèle") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14), 
+        legend.title = element_blank() ) + 
+  xlab("Nombre d'arbres") +
+  ylab("Erreur de classification")
+
+#Compromis biais - variance pour nrounds = 19
+```
+
+Le compromis biais variance est donc trouvé pour nrounds = 19. Au delà  nous sur-apprenons, en dessous nous sous-apprenons. Ainsi notre prédiction par gradient boosting est : 
+
+```{r}
+data_train$CarInsurance <- NULL
+Grad_bost <- xgboost(data = data.matrix(data_train), 
+                     label = data.matrix(y_train), max.depth = 4, 
+                     eta = 1, nthread= 4, nrounds = 19, 
+                     objective = "binary:logistic")
+pred_train <- predict(Grad_bost, data.matrix(data_train))
+train_err <- mean(as.numeric(pred_train > 0.5) != y_train)
+
+print(paste("train-error=",train_err))
+
+pred <- predict(Grad_bost, data.matrix(data_test))
+prediction <- as.numeric(pred > 0.5)
+err_test <- mean(prediction != y_test)
+
+print(paste("test-error=", err_test))
+
+```
+
+Nous allons maintenant afficher la matrice de confusion afin de comparer facilement cette modélisation au précédente : 
+
+```{r}
+p1 = Grad_bost %>% predict(data.matrix(data_test)) %>% `>`(0.5)
+p1 = as.numeric(p1)
+p1 = as.factor(p1)
+table(p1)
+confusionMatrix(p1, as.factor(y_test))
+```
+Nous obtenons donc une nouvelle fois de bons résultats avec cette nouvelle modélisation. Comparons maintenant toutes celles effectuées au sein de cette section "Modélisation".
+
+## 9 - Comparaison des modèles et pr"diction du jeu de données test
+
+Pour conclure, voici le tableau de performance de nos différents modèles selon 3 métriques d'évaluation, en notant bien que la classe positive est 0 pour chaque modélisation : 
+
+
+```{r}
+result_mod <- t(matrix(c(0.8,0.83,0.76,0.83,0.89,0.72,0.8,0.82,
+                         0.76,0.79,0.87,0.65),nrow=3))
+result_mod <- as.data.frame(result_mod)
+colnames(result_mod) <- c("Accuracy", "Sensibilité", "Spécificité")
+row.names(result_mod) <- c("Random Forest", "Régression Logistique", "Réseau de neurones", "Xgboost")
+print.data.frame(result_mod)
+```
+Ainsi, si nous souhaitons un modèle avec la meilleure accuracy possible nous choisirons la Régression Logistique. Si nous souhaitons avoir un modèle prédisant bien les clients qui ne souscriront pas à notre assurance, nous choisirons une nouvelle fois la régression logistique. Et si nous souhaitons garder le modèle prédisant le mieux les clients qui souscriront à notre assurance, nous garderons le réseau de neurones.
+
+\vspace*{2mm}
+
+Ceci achève ce projet de classification binaire, nous vous remercions pour votre lecture.
+
+
+
+
